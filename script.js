@@ -6,20 +6,10 @@ const w = c.width;
 const h = c.height;
 
 let placingMode = false;
-
 let mouse = {
     x: -1, 
     y: -1, 
-}
-
-c.addEventListener("mousemove", (event) => {
-    const rect = c.getBoundingClientRect();
-    mouse.x = event.clientX - rect.left;
-    mouse.y = event.clientY - rect.top;
-});
-
-c.addEventListener("mousedown", click);
-
+};
 let nodeCount = 0;
 let nodes = [];
 /**
@@ -42,6 +32,22 @@ function Node(x, y) {
     this.start = false;
     this.final = false;
 }
+const nodeProps = {
+    radius: 40
+};
+
+function touching(x1, y1, x2, y2, radius) {
+    const distanceSquared = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+
+    return (distanceSquared <= ((radius * 2) ** 2));
+}
+
+c.addEventListener("mousemove", (event) => {
+    const rect = c.getBoundingClientRect();
+    mouse.x = event.clientX - rect.left;
+    mouse.y = event.clientY - rect.top;
+});
+c.addEventListener("mousedown", click);
 
 function enterPlacingMode() {
     placingMode = true;
@@ -50,13 +56,25 @@ function enterPlacingMode() {
 }
 
 function click() {
-    if(placingMode) {
-        ++nodeCount;
+    if (placingMode) {
+        // Check if the mouse position is too close to any existing node
+        let canPlace = true;
+        
+        for (let i = 0; i < nodes.length; i++) {
+            let ref = nodes[i];
+            if (touching(ref.x, ref.y, mouse.x, mouse.y, nodeProps.radius)) {
+                canPlace = false;
+                break;
+            }
+        }
 
-        nodes.push(new Node(mouse.x, mouse.y));
-        placingMode = false;
-
-        c.style.cursor = "default";
+        if (canPlace) {
+            ++nodeCount;
+            nodes.push(new Node(mouse.x, mouse.y));
+            c.style.cursor = "default";
+            
+            placingMode = false;
+        }
     }
 }
 
@@ -70,7 +88,7 @@ function loop() {
         r.arc(
             mouse.x, 
             mouse.y, 
-            40, 
+            nodeProps.radius, 
             0, 
             2 * Math.PI
         );
@@ -88,7 +106,7 @@ function loop() {
         r.arc(
             ref.x, 
             ref.y, 
-            40, 
+            nodeProps.radius, 
             0, 
             2 * Math.PI
         );
