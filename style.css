@@ -1,0 +1,43 @@
+body {
+    background-color: #2e4053;
+    display: flex;
+    flex-direction: column;
+}
+
+#header {
+    display: flex;
+    flex-direction: row;
+}
+#header button {
+    outline: none;
+    border: none;
+    background-color: #c39bd3;
+    color: white;
+    border-radius: 7px;
+    font-size: 20px;
+    padding: 0.25em;
+    padding-left: 0.75em;
+    padding-right: 0.75em;
+    margin-left: 0.5em;
+    margin-right: 0.5em;
+}
+#header button:hover {
+    cursor: pointer;
+    background-color: #dab3ea;
+}
+#header input {
+    outline: none;
+    border: none;
+    border-radius: 7px;
+    padding-left: 0.75em;
+    padding-right: 0.75em;
+    font-size: 20px;
+}
+#header div {
+    display: flex;
+    flex-direction: row;
+}
+#header #input {
+    position: absolute;
+    margin-left: 50%;
+}
