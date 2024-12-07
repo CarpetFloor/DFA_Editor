@@ -41,3 +41,33 @@ body {
     position: absolute;
     margin-left: 50%;
 }
+
+#edgeInputContainer {
+    position: absolute;
+    display: flex;
+    flex-direction: row;
+    background-color: #d6dbdf;
+    border-radius: 20px;
+    padding-left: 0.75em;
+    padding-right: 0.5em;
+    padding-top: 0.1em;
+    padding-bottom: 0.1em;
+    display: none;
+}
+#edgeInputContainer button {
+    outline: none;
+    border: none;
+    background-color: #7fb3d5;
+    font-weight: bold;
+    font-size: 20px;
+    border-radius: 100%;
+    padding-left: 0.75em;
+    padding-right: 0.75em;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+    margin-right: 0.25em;
+}
+#edgeInputContainer button:hover {
+    background-color: #99c9e9;
+    cursor: pointer;
+}

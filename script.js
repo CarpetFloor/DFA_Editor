@@ -5,12 +5,14 @@ c.height = window.innerHeight - 55;
 const w = c.width;
 const h = c.height;
 
+let valueInputMode = false;
 let placingMode = false;
 let connectingMode = false;
 // index of node at start of connection
 let connectionStart = -1;
 // index of node mouse is touching
 let nodeTouching = -1;
+let nodeLastTouched = -1;
 let mouse = {
     x: -1, 
     y: -1, 
@@ -32,6 +34,7 @@ function Node(x, y) {
     this.x = x;
     this.y = y;
     this.ends = [];
+    this.remainingValues = ["a", "b"];
     this.edges = [];
     this.number = nodeCount;
     this.start = false;
@@ -54,6 +57,8 @@ c.addEventListener("mousemove", (event) => {
     mouse.y = event.clientY - rect.top;
 });
 c.addEventListener("mousedown", click);
+document.getElementById("a").addEventListener("mousedown", function(){edgeValueClicked("a");});
+document.getElementById("b").addEventListener("mousedown", function(){edgeValueClicked("b");});
 
 function enterPlacingMode() {
     placingMode = true;
@@ -62,61 +67,112 @@ function enterPlacingMode() {
 }
 
 function click() {
-    if (placingMode) {
-        // Check if the mouse position is too close to any existing node
-        let canPlace = true;
-        
-        for (let i = 0; i < nodes.length; i++) {
-            let ref = nodes[i];
-            if (touching(ref.x, ref.y, mouse.x, mouse.y, nodeDisplayProps.radius)) {
-                canPlace = false;
-                break;
-            }
-        }
-
-        if (canPlace) {
-            ++nodeCount;
-            nodes.push(new Node(mouse.x, mouse.y));
-            c.style.cursor = "default";
+    if(!(valueInputMode)) {
+        if (placingMode) {
+            // Check if the mouse position is too close to any existing node
+            let canPlace = true;
             
-            placingMode = false;
-        }
-    }
-    // start of connect mode
-    else if(!(connectingMode) && (nodeTouching != -1)) {
-        connectionStart = nodeTouching;
-        connectingMode = true;
-        nodeTouching = -1;
-    }
-    // finish connect mode
-    else if(connectingMode && (nodeTouching != -1)) {
-        // don't allow creating a connection that already exists
-        let canConnect = true;
-        for(let i = 0; i < nodes[connectionStart].ends.length; i++) {
-            if(nodes[connectionStart].ends[i] == nodeTouching) {
-                canConnect = false;
-                break;
+            for (let i = 0; i < nodes.length; i++) {
+                let ref = nodes[i];
+                if (touching(ref.x, ref.y, mouse.x, mouse.y, nodeDisplayProps.radius)) {
+                    canPlace = false;
+                    break;
+                }
+            }
+
+            if (canPlace) {
+                ++nodeCount;
+                nodes.push(new Node(mouse.x, mouse.y));
+                c.style.cursor = "default";
+                
+                placingMode = false;
             }
         }
+        // start of connect mode
+        else if(!(connectingMode) && (nodeTouching != -1)) {
+            // make sure all of the edges haven't already been created
+            if(nodes[nodeTouching].remainingValues.length > 0) {
+                connectionStart = nodeTouching;
+                connectingMode = true;
+                nodeTouching = -1;
+            }
+        }
+        // finish connect mode
+        else if(connectingMode && (nodeTouching != -1)) {
+            // don't allow creating a connection that already exists
+            let canConnect = true;
+            for(let i = 0; i < nodes[connectionStart].ends.length; i++) {
+                if(nodes[connectionStart].ends[i] == nodeTouching) {
+                    canConnect = false;
+                    break;
+                }
+            }
 
-        if(canConnect) {
-            nodes[connectionStart].ends.push(nodeTouching);
+            // finish connection
+            if(canConnect) {
+                nodeLastTouched = nodeTouching;
+
+                let inputContainer = document.getElementById("edgeInputContainer");
+                inputContainer.style.opacity = "0";
+                inputContainer.style.display = "flex";
+
+                if(nodes[connectionStart].remainingValues.includes("a")) {
+                    document.getElementById("a").style.display = "block";
+                }
+                else {
+                    document.getElementById("a").style.display = "none";
+                }
+
+                if(nodes[connectionStart].remainingValues.includes("b")) {
+                    document.getElementById("b").style.display = "block";
+                }
+                else {
+                    document.getElementById("b").style.display = "none";
+                }
+                
+                // show value input
+                const rect = c.getBoundingClientRect();
+                inputContainer.style.left = `${
+                    rect.left + mouse.x - (inputContainer.offsetWidth / 2)
+                }px`;
+                inputContainer.style.top = `${
+                    rect.top + mouse.y + 40
+                }px`;
+
+                inputContainer.style.opacity = "1";
+
+                valueInputMode = true;
+            }
+        }
+        // cancel connecting mode if trying to connnect to not a node
+        else if(connectingMode) {
             connectingMode = false;
-            nodeTouching = -1;
             connectionStart = -1;
         }
     }
-    // cancel connecting mode if trying to connnect to not a node
-    else if(connectingMode) {
+}
+
+function edgeValueClicked(value) {
+    if(valueInputMode) {
+        nodes[connectionStart].remainingValues.splice(nodes[connectionStart].remainingValues.indexOf(value), 1);
+
+        nodes[connectionStart].ends.push(nodeLastTouched);
+        nodes[connectionStart].edges.push(value);
+
         connectingMode = false;
+        nodeTouching = -1;
         connectionStart = -1;
+
+        valueInputMode = false;
+
+        document.getElementById("edgeInputContainer").style.display = "none";
     }
 }
+
 
 function loop() {
     r.clearRect(0, 0, w, h);
 
-    // draw placing mode indicator
     if(placingMode) {
         r.beginPath();
 
@@ -138,11 +194,15 @@ function loop() {
         for(let i = 0; i < nodes.length; i++) {
             let ref = nodes[i];
 
+            // only detect touch if not all edges have been created yet
             if(touching(ref.x, ref.y, mouse.x, mouse.y, nodeDisplayProps.radius / 2)) {
-                nodeTouching = i;
-                c.style.cursor = "pointer";
-                touchingNode = true;
-                break;
+                if(nodes[i].remainingValues.length > 0) {
+                    nodeTouching = i;
+                    c.style.cursor = "pointer";
+                    touchingNode = true;
+                    
+                    break;
+                }
             }
         }
 
@@ -153,8 +213,8 @@ function loop() {
         }
     }
 
-    // draw connection line preview
-    if(connectingMode) {
+    // draw connection line preview, but only if not choosing edge value
+    if(connectingMode && !(valueInputMode)) {
         r.moveTo(
             nodes[connectionStart].x, 
             nodes[connectionStart].y
@@ -176,6 +236,8 @@ function loop() {
         // draw connections for node
         if(ref.ends.length > 0) {
             for(let j = 0; j < ref.ends.length; j++) {
+                const edgeValue = ref.edges[j];
+                
                 r.beginPath();
                 
                 // draw special connection line for going into itself
@@ -192,6 +254,12 @@ function loop() {
                     r.strokeStyle = "black";
                     r.lineWidth = nodeDisplayProps.connectionThick;
                     r.stroke();
+
+                    // draw edge value
+
+                    r.fillStyle = "black";
+                    r.font = "20px Arial";
+                    r.fillText(edgeValue, ref.x - 5, ref.y - (nodeDisplayProps.radius * 2) - 15);
                 }
                 // regular line straight to other node
                 else {
@@ -205,11 +273,38 @@ function loop() {
                     r.strokeStyle = "black";
                     r.lineWidth = nodeDisplayProps.connectionThick;
                     r.stroke();
+
+                    // draw edge value
+
+                    const target = nodes[ref.ends[j]];
+
+                    // Coordinates of the edge endpoints
+                    const x1 = ref.x;
+                    const y1 = ref.y;
+                    const x2 = target.x;
+                    const y2 = target.y;
+
+                    // Calculate midpoint
+                    const midX = (x1 + x2) / 2;
+                    const midY = (y1 + y2) / 2;
+
+                    // Calculate angle
+                    const angle = Math.atan2(y2 - y1, x2 - x1);
+
+                    r.save();
+                    r.translate(midX, midY); // Move to midpoint
+                    r.rotate(angle); // Rotate to align with the edge
+
+                    // Offset slightly for better visibility
+                    r.fillStyle = "black";
+                    r.font = "20px Arial";
+                    r.fillText(edgeValue, 0, -10); // Draw text slightly above the line
+
+                    r.restore(); // Restore original state
                 }
             }
         }
         
-
         r.beginPath();
         
         r.arc(
@@ -220,8 +315,8 @@ function loop() {
             2 * Math.PI
         );
 
-        // highlight node if mouse is touching
-        if(i == nodeTouching) {
+        // highlight node if mouse is touching, but only if node doesn't already have all edges created
+        if((i == nodeTouching) && (nodes[i].remainingValues.length > 0)) {
             r.fillStyle = "#a3e4d7";
         }
         else {
